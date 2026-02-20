@@ -19,6 +19,8 @@ function App() {
   const [density, setDensity] = useState(50)
   const [flooring, setFlooring] = useState('Light Wood')
 
+  const [imageLoading, setImageLoading] = useState(false)
+
   const [isGenerating, setIsGenerating] = useState(false)
   const [loadingText, setLoadingText] = useState('Generate Vision')
   const [result, setResult] = useState(null)
@@ -42,33 +44,31 @@ function App() {
     }
 
     setIsGenerating(true)
+    setResult(null) // clear previous
     const phases = [
       'Scanning Perimeter...',
       'Mapping Spatial Geometry...',
       'Synthesizing Textures...',
-      'Final AI Rendering...'
+      'Architectural AI Rendering...'
     ]
 
-    // Simulate progress through phases
     for (const phase of phases) {
       setLoadingText(phase)
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await new Promise(resolve => setTimeout(resolve, 600))
     }
 
-    // Constructed prompt for high-quality interior design
-    const refinedPrompt = `Ultra-realistic 3D interior design render, ${roomType}, ${style} style, ${lighting} lighting, ${flooring} flooring, ${density > 70 ? 'richly furnished' : density < 30 ? 'minimalist space' : 'balanced decor'}, architectural photography, cinema 4d render, 8k, highly detailed, cozy atmosphere.`
-
-    // Using the stable pollinations.ai endpoint
     const seed = Math.floor(Math.random() * 1000000)
-    const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(refinedPrompt)}?width=1024&height=768&seed=${seed}&model=flux&nologo=true`
+    // Refined prompt for maximum quality
+    const refinedPrompt = `professional 3D interior design render, ${roomType}, ${style} style, ${lighting} lighting, ${flooring} flooring, architectural photography, 8k, highly detailed, realistic.`
 
-    console.log('Generating image with prompt:', refinedPrompt)
-    console.log('Image URL:', imageUrl)
+    // Using the dedicated image API subdomain
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(refinedPrompt)}?width=1024&height=768&seed=${seed}&nologo=true`
+
+    console.log('Fetching:', imageUrl)
 
     const area = parseFloat(width) * parseFloat(length) || 0
     const estCost = Math.round(area * 45)
 
-    // Pick a palette based on keywords
     let matchedKey = 'Minimalist'
     for (const key in stylePalettes) {
       if (style.toLowerCase().includes(key.toLowerCase())) {
@@ -77,7 +77,6 @@ function App() {
       }
     }
 
-    // Update result immediately - the <img> tag will handle the actual loading
     setResult({
       image: imageUrl,
       style: style,
@@ -94,6 +93,7 @@ function App() {
     })
 
     setIsGenerating(false)
+    setImageLoading(true) // Start loading the actual image
     setLoadingText('Generate Vision')
   }
 
@@ -241,11 +241,28 @@ function App() {
             ) : (
               <div className="generated-content">
                 <div className="image-wrapper">
-                  <img className="generated-image" src={result.image} alt="Generated Room Visualization" />
-                  <div className="image-overlay">
-                    <h3 className="style-label">{result.style}</h3>
-                    <p className="size-label">{result.type} • {result.dimensions}</p>
-                  </div>
+                  {imageLoading && (
+                    <div className="image-skeleton">
+                      <div className="loader"></div>
+                      <p>Finalizing render textures...</p>
+                    </div>
+                  )}
+                  <img
+                    className={`generated-image ${imageLoading ? 'loading' : ''}`}
+                    src={result.image}
+                    alt="Generated Room Visualization"
+                    onLoad={() => setImageLoading(false)}
+                    onError={() => {
+                      setImageLoading(false);
+                      alert("The AI provider is currently busy. Please try another prompt or style!");
+                    }}
+                  />
+                  {!imageLoading && (
+                    <div className="image-overlay">
+                      <h3 className="style-label">{result.style}</h3>
+                      <p className="size-label">{result.type} • {result.dimensions}</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="palette-section">
